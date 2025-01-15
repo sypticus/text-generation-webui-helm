@@ -1,4 +1,4 @@
-# Oobabooga Helm
+# Text Generation Webui Helm
 
 This is a helm chart for the excellent Oobagooba [Text generation web UI](https://github.com/oobabooga/text-generation-webui), which allows you to host your own LLM chatbot using any model, on your own hardward.
 The goal of this Helm chart is to make it easy for anyone with a Kubernetes cluster to quickly and predictably deploy the entire application with a few config changes and commands.
