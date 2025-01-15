@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config
+data:
+  CMD_FLAGS: |
+  {{- if .Values.tls.enabled}}
+    --ssl-keyfile ssl/tls.key --ssl-certfile ssl/tls.crt
+  {{- end }}
+  {{- if .Values.gradioAuth.enabled }}
+    --gradio-auth-path .creds
+  {{- end }}
+    {{ join " " .Values.additionalCmdLineParams }}

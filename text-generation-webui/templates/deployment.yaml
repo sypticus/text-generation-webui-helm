@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "oobabooga.fullname" . }}
+  labels:
+    {{- include "oobabooga.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "oobabooga.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "oobabooga.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "oobabooga.serviceAccountName" . }}
+      runtimeClassName: {{ .Values.runtimeClassName }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          ports:
+            - name: webui
+              containerPort: {{ .Values.service.webUiPort }}
+              protocol: TCP
+            - name: api
+              containerPort: {{ .Values.service.apiPort }}
+              protocol: TCP
+
+
+      {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+      {{- end }}
+      {{- if .Values.livenessProbe.enabled }}
+          readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 12 }}
+      {{- end }}
+
+            {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: app/CMD_FLAGS.txt
+              name: config-data
+              subPath: CMD_FLAGS
+              readOnly: true
+              type: File
+
+          {{- if .Values.gradioAuth.enabled }}
+            - mountPath: /app/.creds
+              name: creds
+              readOnly: true
+              subPath: creds
+            {{- end }}
+          {{- if .Values.tls.enabled }}
+            - mountPath: /app/ssl/
+              name: cert
+              readOnly: true
+            {{- end }}
+            - mountPath: /app/models/
+              name: storage
+              subPath: models
+            - mountPath: /app/characters/
+              name: storage
+              subPath: characters
+            - mountPath: /app/.cache/
+              name: storage
+              subPath: cache
+            - mountPath: /app/extensions/
+              name: storage
+              subPath: extensions
+            - mountPath: /app/settings.yaml
+              name: storage
+              subPath: settings.yaml
+      volumes:
+        - name: config-data
+          configMap:
+            name: config
+            items:
+              - key: CMD_FLAGS
+                path: CMD_FLAGS
+
+      {{- if .Values.tls.enabled }}
+        - name: cert
+          secret:
+            secretName: {{ .Values.tls.secretName }}
+        {{- end }}
+      {{- if .Values.gradioAuth.enabled }}
+        - name: creds
+          secret:
+            secretName: {{ .Values.gradioAuth.secretName }}
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+        {{- if .Values.persistence.existingClaim }}
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim }}
+        {{- end }}
+      {{- else }}
+        - name: storage
+          emptyDir: { }
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
