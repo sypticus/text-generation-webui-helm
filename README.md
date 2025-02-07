@@ -17,24 +17,23 @@ At the moment, this chart is designed to work with the default cpu chart from At
 
 ```console
 git clone https://github.com/sypticus/text-generation-webui-helm.git
-helm install text-generation-ui ./text-generation-webui/ -n oobabooga --create-namespace`
+helm install text-generation-ui ./text-generation-webui/ -n oobabooga --create-namespace
 ```
 
 You should then be able to access the dashboard.
 
 ```console
 POD=$(kubectl get pods -l app.kubernetes.io/instance=text-generation-ui   -o jsonpath="{.items[0].metadata.name}" -n oobabooga)
-kubectl -n proxy port-forward $POD 9117
+kubectl -n proxy port-forward $POD 7860
 
 ```
-In a browser window, open http://localhost:9117
+In a browser window, open http://localhost:7860
 
 However without a model loaded, the chatbot will not work.
 
 ## Persistence
 By default the config and model info folders are dropped at each deploy. Turn on `persistence.enabled` to allow storage.
-If you already have a PVC you would like to use, set it in values.yaml, otherwise a new PVC will be created for you and used.
-Ensure that your default storage class is set up correctly so you don't loose data.
+You will need to define an PVC you would like to use and set it in `existingClaim`.
 
 
 ## Configuration
@@ -69,8 +68,29 @@ saved to the attached models PVC volume in the `/models/` directory.
 
 
 ## CUDA 
-//TODO: It is possible to set this up using helm. I'm in the process of cleaning up and unifying my scripts and should have something posted soon 
+Cuda can be used to access Nvidia GPU resources from video cards on the host nodes. 
 
+### NOTE: The NVIDIA and Cuda drivers need to be installed on the host, and the Kubernetes cluster needs to be configured to work with these.
+### For K3S, see https://github.com/sypticus/nvidia-k3s-cuda for instructions, otherwise Nvidia has documentation on how to install.
+
+Cuda can be enabled by setting `cuda.enabled` in the values.yaml. Here you can also set the other required params. 
+This will set the needed ENV params and runtimeClassName for Cuda to work for at least k3s, but you may need to add other ENV params for your flavor of K8s. 
+This can be done in the `extraEnvVars` field
+You will also need to ensure that the pods are created on a node with available GPU resources. 
+This can be done manually via `nodeSelector` etc, 
+
+```yaml
+nodeSelector:
+  kubernetes.io/hostname: "my-llm-host"
+```
+
+Or if you are using the Nvidia `k8s-device-plugin`, which will detect and label GPU nodes automatically, you can set required resources. 
+
+```yaml
+resources:
+    limits:
+      nvidia.com/gpu: 1 # requesting 1 GPU
+```
 
 
 ## Configuration
@@ -84,17 +104,22 @@ Further info can be found in the chart's included [values.yaml](https://github.c
 The following are the most of the relevant config values which can be set in the helm chart.
 Further environment params can be added with the `environmentParams` field, and command line params can be passed in with `additionalCmdLineParams`
 
-| Parameter                       | Description                                                              | Default                         |
-|---------------------------------|--------------------------------------------------------------------------|---------------------------------|
-| `image.repository`              | Image repository                                                         | `atinoda/text-generation-webui` |
-| `image.tag`                     | Image tag                                                                | `default-cpu`                   |
-| `image.pullPolicy`              | Image pull policy                                                        | `IfNotPresent`                  |
-| `service.type`                  | Kubernetes service type                                                  | `ClusterIP`                     |
-| `service.webUiPort`             | Port to be used for the web ui.                                          | `7860`                          |
-| `service.apiPort`               | Port to be used for the api calls.                                       | `5000`                          |
-| `service.loadBalancerIP`        | If type is LoadBalancer, set the IP                                      |                                 |
-| `persistence.enabled`           | Use a PVC to store data.  (models, characters, etc)                      | `false`                         |
-| `persistence.existingClaim`     | An existing VPC to use for storage. If empty, a new one will be created. |                                 |
-| `persistence.storageClass`      | Storage class to use if creating a new PVC                               |                                 |
-| `environmentParams`             | Extra environment params to be passed into the container                 |                                 |
-| `additionalCmdLineParams`       | Additional CMD line params to be passed to the webui server at startup   | ["--listen", "--api"]           |
+| Parameter                   | Description                                                                                                               | Default                         |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|---------------------------------|
+| `image.repository`          | Image repository                                                                                                          | `atinoda/text-generation-webui` |
+| `image.tag`                 | Image tag                                                                                                                 | `default-cpu`                   |
+| `image.pullPolicy`          | Image pull policy                                                                                                         | `IfNotPresent`                  |
+| `service.type`              | Kubernetes service type                                                                                                   | `ClusterIP`                     |
+| `service.webUiPort`         | Port to be used for the web ui.                                                                                           | `7860`                          |
+| `service.apiPort`           | Port to be used for the api calls.                                                                                        | `5000`                          |
+| `service.loadBalancerIP`    | If type is LoadBalancer, set the IP                                                                                       |                                 |
+| `persistence.enabled`       | Use a PVC to store data.  (models, characters, etc)                                                                       | `false`                         |
+| `persistence.existingClaim` | An existing VPC to use for storage.                                                                                       |                                 |
+| `extraEnvVars`              | Extra environment params to be passed into the container                                                                  |                                 |
+| `additionalCmdLineParams`   | Additional CMD line params to be passed to the webui server at startup                                                    | ["--listen", "--api"]           |
+| `cuda.enabled`              | Enable CUDA to access GPU resources on host                                                                               | `false`                         |
+| `cuda.visibleDevices`       | Needed by K3s                                                                                                             | `all`                           |
+| `cuda.capabilities`         | Needed by K3s                                                                                                             | `all`                           |
+| `cuda.runtimeClassName`     | Needed for some K8s flavors. You would have created this when setting up your cluster for CUDA                            | `nvidia`                        |
+| `cuda.torchCudaArchList`    | Compute capabilities of your [GPU](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#compute-capabilities) |                                 |
+| `cuda.appRuntimeGID`        | The host group id to use                                                                                                  | `6972`                          |

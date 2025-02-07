@@ -28,10 +28,22 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "oobabooga.serviceAccountName" . }}
-      runtimeClassName: {{ .Values.runtimeClassName }}
+
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
 
+      {{- if .Values.cuda.enabled }}
+      runtimeClassName: {{ .Values.cuda.runtimeClassName }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+      initContainers:
+        - name: storage-init
+          image:  "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          command: [ 'sh', '-c', "if [ ! -f /init/settings.yaml ]; then cp /app/settings-template.yaml /init/settings.yaml; fi" ]
+          volumeMounts:
+            - mountPath: '/init/'
+              name: storage
+  {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -56,21 +68,31 @@ spec:
           readinessProbe:
           {{- toYaml .Values.readinessProbe | nindent 12 }}
       {{- end }}
-
-            {{- with .Values.env }}
           env:
+            {{- with .Values.extraEnvVars }}
             {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.cuda.enabled }}
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: {{ .Values.cuda.visibleDevices | quote}}
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: {{ .Values.cuda.capabilities | quote }}
+            - name: TORCH_CUDA_ARCH_LIST
+              value: {{ .Values.cuda.torchCudaArchList | quote }}
+            - name: APP_RUNTIME_GID
+              value: {{ .Values.cuda.appRuntimeGID | quote }}
+
             {{- end }}
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+
           volumeMounts:
             - mountPath: app/CMD_FLAGS.txt
               name: config-data
               subPath: CMD_FLAGS
               readOnly: true
               type: File
-
           {{- if .Values.gradioAuth.enabled }}
             - mountPath: /app/.creds
               name: creds
@@ -94,9 +116,12 @@ spec:
             - mountPath: /app/extensions/
               name: storage
               subPath: extensions
+      {{- if .Values.persistence.enabled }}
             - mountPath: /app/settings.yaml
               name: storage
               subPath: settings.yaml
+      {{- end }}
+
       volumes:
         - name: config-data
           configMap:
@@ -105,7 +130,7 @@ spec:
               - key: CMD_FLAGS
                 path: CMD_FLAGS
 
-      {{- if .Values.tls.enabled }}
+  {{- if .Values.tls.enabled }}
         - name: cert
           secret:
             secretName: {{ .Values.tls.secretName }}

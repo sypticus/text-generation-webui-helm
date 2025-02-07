@@ -2,11 +2,8 @@ replicaCount: 1
 image:
   repository: atinoda/text-generation-webui
   pullPolicy: IfNotPresent
-  tag: default-cpu # This is the default-CPU image from Jan 4, 2025
-
-
-  # tag: "sha256:300d16d109720ee4d68eed5adf5f9c3cbfd3301b05b4e8b95e1573d50581ea60"   # This is the default-nvidia image from Jan 4, 2025
-
+  #tag: default-nvidia #Enable this if using CUDA
+  tag: default-cpu
 
 imagePullSecrets: []
 nameOverride: ""
@@ -19,9 +16,7 @@ service:
 
 persistence: # A pvc to store models, characters, config, etc.
   enabled: false  #If false, all storage will be dropped each time the pod is restarted
-  existingClaim: text-gen-ui-data  # An existing PVC to use
-  #size: 50G #Size of the new PVC to create
-  #storageClass: "" #Storage class to use for the new PVC
+ # existingClaim: my-llm-data-pvc  # An existing PVC to use
 
 
 gradioAuth:
@@ -65,19 +60,14 @@ additionalCmdLineParams:
   - "--api"  #Start the API on port 5000
 
 
+
 tls:
   enabled: false
 #  secretName: my-tls-secret
 
 
 
-environment:
-# by default the Dockerfile specifies these versions: 3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX
-# however for me to work i had to specify the exact version for my card ( 2060 ) it was 7.5
-# https://developer.nvidia.com/cuda-gpus you can find the version for your card here
-# Or for a programatic approach run `nvidia-smi --query-gpu=name,compute_cap --format=csv`
-#  - name:  TORCH_CUDA_ARCH_LIST
-#    value: "7.5"
+extra_env_vars:
   # the port the webui binds to on the host
   - name: HOST_PORT
     value: "7860"
@@ -98,39 +88,29 @@ environment:
   - name: BUILD_EXTENSIONS
     value: ""
 
-  # Set APP_RUNTIME_GID to an appropriate host system group to enable access to mounted volumes 
-  # You can find your current host user group id with the command `id -g`
-#  - name: APP_RUNTIME_GID
-#    value: "6972"
-#
-#  # override default app build permissions (handy for deploying to cloud)
-#  - name: APP_GID
-#    value: "6972"
-#
-#  - name: APP_UID
-#    value: "6972"
-#
-#  # Set cache env
-#  - name: TRANSFORMERS_CACHE
-#    value: "/home/app/text-generation-webui/cache/"
-#  - name: HF_HOME
-#    value: "/home/app/text-generation-webui/cache/"
-#  - name: NVIDIA_VISIBLE_DEVICES
-#    value: "all"
-#  - name: NVIDIA_DRIVER_CAPABILITIES
-#    value: "all"
 
 
-#runtimeClassName: nvidia
-sleep: false
+cuda: # Use CUDA to access NVIDIA GPU resources. Requires NVIDIA and Cuda drivers to be setup on the GPU node.
+  #Be sure to change image.tag to an Nvidia docker image such as `default-nvidia`
+  enabled: "true"
+  visibleDevices: "all"
+  capabilities: "all" #Needed for some flavors of Kubernetes
+  torchCudaArchList: "7.5" #3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX https://developer.nvidia.com/cuda-gpus
+  runtimeClassName: "nvidia"
+  appRuntimeGID: "6972" #the group ID of the host user.
+
+resources: {}
+#  limits:
+#    nvidia.com/gpu: 1
+
+sleep: true
 
 nodeSelector:
   "node-role.kubernetes.io/llm": llm
-tolerations:
-  - key: "type"
-    operator: "Equal"
-    value: "gpu"
-    effect: "NoSchedule"
+
+
+#tolerations: {}
+
 
 
 serviceAccount:
@@ -150,4 +130,4 @@ securityContext: {}
 ingress:
   enabled: false
 
-resources: {}
+
