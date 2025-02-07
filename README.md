@@ -8,8 +8,8 @@ https://github.com/sypticus/text-generation-webui-helm.git
 
 
 ## Build the Docker image.
-You will need a prebuilt docker image for your specific platform before deploying. The easiest way is to use one of the prebuilt models here from [Atinoda](https://github.com/Atinoda/text-generation-webui-docker)
-At the moment, this chart is designed to work with the default cpu chart from Atinoda.
+You will need a prebuilt docker image for your specific platform before deploying. The easiest way is to use one of the prebuilt models here from [Atinoda](https://github.com/Atinoda/text-generation-webui-docker) 
+At the moment, this chart is designed to work with the default cpu and nvidia charts from Atinoda's [dockerhub](https://hub.docker.com/r/atinoda/text-generation-webui)
 
 
 ## Installing the Chart.
@@ -67,12 +67,28 @@ saved to the attached models PVC volume in the `/models/` directory.
 
 
 ## CUDA 
+
+#### NOTE: The NVIDIA and Cuda drivers need to be installed on the host, and the Kubernetes cluster needs to be configured to work with these.
+#### For K3S, see https://github.com/sypticus/nvidia-k3s-cuda for instructions, otherwise Nvidia has documentation on how to install.
+
 Cuda can be used to access Nvidia GPU resources from video cards on the host nodes. 
 
-### NOTE: The NVIDIA and Cuda drivers need to be installed on the host, and the Kubernetes cluster needs to be configured to work with these.
-### For K3S, see https://github.com/sypticus/nvidia-k3s-cuda for instructions, otherwise Nvidia has documentation on how to install.
+
 
 Cuda can be enabled by setting `cuda.enabled` in the values.yaml. Here you can also set the other required params. 
+
+```yaml  
+  cuda: 
+    enabled: "true"
+    visibleDevices: "all"
+    capabilities: "all" 
+    torchCudaArchList: "7.5" #3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX https://developer.nvidia.com/cuda-gpus
+    runtimeClassName: "nvidia"
+    appRuntimeGID: "6972"
+```
+
+Ina addition, you must be using an NVIDIA enabled docker image, such as 
+
 This will set the needed ENV params and runtimeClassName for Cuda to work for at least k3s, but you may need to add other ENV params for your flavor of K8s. 
 This can be done in the `extraEnvVars` field
 You will also need to ensure that the pods are created on a node with available GPU resources. 
