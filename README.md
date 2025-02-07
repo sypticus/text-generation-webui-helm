@@ -1,12 +1,11 @@
 # Text Generation Webui Helm
 
 This is a helm chart for the excellent Oobagooba [Text generation web UI](https://github.com/oobabooga/text-generation-webui), which allows you to host your own LLM chatbot using any model, on your own hardward.
-The goal of this Helm chart is to make it easy for anyone with a Kubernetes cluster to quickly and predictably deploy the entire application with a few config changes and commands.
+
+The goal of this Helm chart is to make it easy for anyone with a Kubernetes cluster to quickly and predictably deploy the entire application, including CUDA to utilize GPU resources, with a few config changes and commands.
 
 https://github.com/sypticus/text-generation-webui-helm.git
 
-
-### NOTE: This project is under construction and will be completed shortly.
 
 ## Build the Docker image.
 You will need a prebuilt docker image for your specific platform before deploying. The easiest way is to use one of the prebuilt models here from [Atinoda](https://github.com/Atinoda/text-generation-webui-docker)
