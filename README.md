@@ -87,7 +87,7 @@ Cuda can be enabled by setting `cuda.enabled` in the values.yaml. Here you can a
     appRuntimeGID: "6972"
 ```
 
-Ina addition, you must be using an NVIDIA enabled docker image, such as 
+Ina addition, you must be using an NVIDIA enabled docker image, such as Atinoda's [default-nvidia](https://hub.docker.com/layers/atinoda/text-generation-webui/default-nvidia/images/sha256-300d16d109720ee4d68eed5adf5f9c3cbfd3301b05b4e8b95e1573d50581ea60) image
 
 This will set the needed ENV params and runtimeClassName for Cuda to work for at least k3s, but you may need to add other ENV params for your flavor of K8s. 
 This can be done in the `extraEnvVars` field
