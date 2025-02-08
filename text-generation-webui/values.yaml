@@ -103,7 +103,7 @@ resources: {}
 #  limits:
 #    nvidia.com/gpu: 1
 
-sleep: true
+sleep: false
 
 nodeSelector:
   "node-role.kubernetes.io/llm": llm
