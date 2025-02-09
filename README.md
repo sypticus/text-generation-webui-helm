@@ -1,16 +1,15 @@
 # Text Generation Webui Helm
 
-This is a helm chart for the excellent Oobagooba [Text generation web UI](https://github.com/oobabooga/text-generation-webui), which allows you to host your own LLM chatbot using any model, on your own hardward.
-The goal of this Helm chart is to make it easy for anyone with a Kubernetes cluster to quickly and predictably deploy the entire application with a few config changes and commands.
+This is a helm chart for the excellent Oobagooba [Text generation web UI](https://github.com/oobabooga/text-generation-webui), which allows you to host your own LLM chatbot using any model, on your own hardware.
+
+The goal of this Helm chart is to make it easy for anyone with a Kubernetes cluster to quickly and predictably deploy the entire application, including CUDA to utilize GPU resources, with a few config changes and commands.
 
 https://github.com/sypticus/text-generation-webui-helm.git
 
 
-### NOTE: This project is under construction and will be completed shortly.
-
 ## Build the Docker image.
-You will need a prebuilt docker image for your specific platform before deploying. The easiest way is to use one of the prebuilt models here from [Atinoda](https://github.com/Atinoda/text-generation-webui-docker)
-At the moment, this chart is designed to work with the default cpu chart from Atinoda.
+You will need a prebuilt docker image for your specific platform before deploying. The easiest way is to use one of the prebuilt models here from [Atinoda](https://github.com/Atinoda/text-generation-webui-docker) 
+At the moment, this chart is designed to work with the default cpu and nvidia charts from Atinoda's [dockerhub](https://hub.docker.com/r/atinoda/text-generation-webui)
 
 
 ## Installing the Chart.
@@ -68,12 +67,28 @@ saved to the attached models PVC volume in the `/models/` directory.
 
 
 ## CUDA 
+
+#### NOTE: The NVIDIA and Cuda drivers need to be installed on the host, and the Kubernetes cluster needs to be configured to work with these.
+#### For K3S, see https://github.com/sypticus/nvidia-k3s-cuda for instructions, otherwise Nvidia has documentation on how to install.
+
 Cuda can be used to access Nvidia GPU resources from video cards on the host nodes. 
 
-### NOTE: The NVIDIA and Cuda drivers need to be installed on the host, and the Kubernetes cluster needs to be configured to work with these.
-### For K3S, see https://github.com/sypticus/nvidia-k3s-cuda for instructions, otherwise Nvidia has documentation on how to install.
+
 
 Cuda can be enabled by setting `cuda.enabled` in the values.yaml. Here you can also set the other required params. 
+
+```yaml  
+  cuda: 
+    enabled: "true"
+    visibleDevices: "all"
+    capabilities: "all" 
+    torchCudaArchList: "7.5" #3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX https://developer.nvidia.com/cuda-gpus
+    runtimeClassName: "nvidia"
+    appRuntimeGID: "6972"
+```
+
+Ina addition, you must be using an NVIDIA enabled docker image, such as Atinoda's [default-nvidia](https://hub.docker.com/layers/atinoda/text-generation-webui/default-nvidia/images/sha256-300d16d109720ee4d68eed5adf5f9c3cbfd3301b05b4e8b95e1573d50581ea60) image
+
 This will set the needed ENV params and runtimeClassName for Cuda to work for at least k3s, but you may need to add other ENV params for your flavor of K8s. 
 This can be done in the `extraEnvVars` field
 You will also need to ensure that the pods are created on a node with available GPU resources. 
