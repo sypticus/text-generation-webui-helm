@@ -4,6 +4,8 @@ metadata:
   name: config
 data:
   CMD_FLAGS: |
+    --listen
+    --listen-host 0.0.0.0
   {{- if .Values.tls.enabled}}
     --ssl-keyfile ssl/tls.key --ssl-certfile ssl/tls.crt
   {{- end }}

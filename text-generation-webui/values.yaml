@@ -54,9 +54,7 @@ volumeMounts: []
 
 affinity: {}
 
-#Will be passed into CMD_FLAGS.txt
 additionalCmdLineParams:
-  - "--listen"
   - "--api"  #Start the API on port 5000
 
 

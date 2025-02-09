@@ -69,6 +69,13 @@ spec:
           {{- toYaml .Values.readinessProbe | nindent 12 }}
       {{- end }}
           env:
+            - name: EXTRA_LAUNCH_ARGS
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: CMD_FLAGS
+
+
             {{- with .Values.extraEnvVars }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
